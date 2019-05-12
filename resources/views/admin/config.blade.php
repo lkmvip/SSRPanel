@@ -1,10 +1,8 @@
 @extends('admin.layouts')
-
 @section('css')
     <link href="/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css" />
     <link href="/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css" />
 @endsection
-@section('title', '控制面板')
 @section('content')
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
@@ -25,7 +23,7 @@
                                 <a href="#tab3" data-toggle="tab"> 混淆 </a>
                             </li>
                             <li @if(Request::get('tab') == '4') class="active" @endif>
-                                <a href="#tab4" data-toggle="tab"> 账号等级 </a>
+                                <a href="#tab4" data-toggle="tab"> 等级 </a>
                             </li>
                             <li @if(Request::get('tab') == '5') class="active" @endif>
                                 <a href="#tab5" data-toggle="tab"> 国家地区 </a>
@@ -38,8 +36,8 @@
                                         <button class="btn sbold blue" data-toggle="modal" data-target="#add_config_modal"> 新增 <i class="fa fa-plus"></i> </button>
                                     </div>
                                 </div>
-                                <div class="table-scrollable">
-                                    <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <div class="table-scrollable table-scrollable-borderless">
+                                    <table class="table table-hover table-light table-checkable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 50%;"> 名称 </th>
@@ -54,13 +52,13 @@
                                         @else
                                             @foreach($method_list as $method)
                                                 <tr class="odd gradeX">
-                                                    <td> {{$method->name}} @if($method->is_default) <small><span class='label label-info label-sm'>默认</span></small> @endif </td>
+                                                    <td> {{$method->name}} </td>
                                                     <td>
-                                                        @if(!$method->is_default)
+                                                        @if($method->is_default)
+                                                            <span class='label label-info'>默认</span>
+                                                        @else
                                                             <button type="button" class="btn btn-sm blue btn-outline" onclick="setDefault('1', '{{$method->id}}')">默认</button>
-                                                            <button type="button" class="btn btn-sm red btn-outline" onclick="delConfig('1', '{{$method->id}}')">
-                                                                <i class="fa fa-trash"></i>
-                                                            </button>
+                                                            <button type="button" class="btn btn-sm red btn-outline" onclick="delConfig('1', '{{$method->id}}')">删除</button>
                                                         @endif
                                                     </td>
                                                 </tr>
@@ -76,8 +74,8 @@
                                         <button class="btn sbold blue" data-toggle="modal" data-target="#add_config_modal"> 新增 <i class="fa fa-plus"></i> </button>
                                     </div>
                                 </div>
-                                <div class="table-scrollable">
-                                    <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <div class="table-scrollable table-scrollable-borderless">
+                                    <table class="table table-hover table-light table-checkable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 50%;"> 名称 </th>
@@ -114,8 +112,8 @@
                                         <button class="btn sbold blue" data-toggle="modal" data-target="#add_config_modal"> 新增 <i class="fa fa-plus"></i> </button>
                                     </div>
                                 </div>
-                                <div class="table-scrollable">
-                                    <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <div class="table-scrollable table-scrollable-borderless">
+                                    <table class="table table-hover table-light table-checkable">
                                         <thead>
                                         <tr>
                                             <th style="width: 50%;"> 名称 </th>
@@ -152,8 +150,8 @@
                                         <button class="btn sbold blue" data-toggle="modal" data-target="#add_level_modal"> 新增 <i class="fa fa-plus"></i> </button>
                                     </div>
                                 </div>
-                                <div class="table-scrollable">
-                                    <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <div class="table-scrollable table-scrollable-borderless">
+                                    <table class="table table-hover table-light table-checkable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 35%;"> 等级 </th>
@@ -190,8 +188,8 @@
                                         <button class="btn sbold blue" data-toggle="modal" data-target="#add_country_modal"> 新增 <i class="fa fa-plus"></i> </button>
                                     </div>
                                 </div>
-                                <div class="table-scrollable">
-                                    <table class="table table-striped table-bordered table-hover table-checkable order-column">
+                                <div class="table-scrollable table-scrollable-borderless">
+                                    <table class="table table-hover table-light table-checkable">
                                         <thead>
                                             <tr>
                                                 <th style="width: 20%;"> 图标 </th>
@@ -347,8 +345,6 @@
     <!-- END CONTENT BODY -->
 @endsection
 @section('script')
-    <script src="/js/layer/layer.js" type="text/javascript"></script>
-
     <script type="text/javascript">
         // modal关闭时刷新页面
         $(".modal").on("hidden.bs.modal", function () {

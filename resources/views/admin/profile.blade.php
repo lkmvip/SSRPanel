@@ -1,9 +1,7 @@
 @extends('admin.layouts')
-
 @section('css')
     <link href="/assets/pages/css/profile.min.css" rel="stylesheet" type="text/css" />
 @endsection
-@section('title', '控制面板')
 @section('content')
     <!-- BEGIN CONTENT BODY -->
     <div class="page-content" style="padding-top:0;">
@@ -16,10 +14,9 @@
                         {{Session::get('successMsg')}}
                     </div>
                 @endif
-                @if (Session::has('errorMsg'))
-                    <div class="alert alert-danger alert-dismissable">
-                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true"></button>
-                        <strong>错误：</strong> {{Session::get('errorMsg')}}
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <span> {{$errors->first()}} </span>
                     </div>
                 @endif
                 <!-- BEGIN PROFILE SIDEBAR -->
@@ -32,7 +29,7 @@
                         <!-- END SIDEBAR USERPIC -->
                         <!-- SIDEBAR USER TITLE -->
                         <div class="profile-usertitle">
-                            <div class="profile-usertitle-name"> {{Session::get('user')['username']}} </div>
+                            <div class="profile-usertitle-name"> {{Auth::user()->username}} </div>
                             <div class="profile-usertitle-job"> 管理员 </div>
                         </div>
                         <!-- END SIDEBAR USER TITLE -->
@@ -102,5 +99,4 @@
     <!-- END CONTENT BODY -->
 @endsection
 @section('script')
-
 @endsection

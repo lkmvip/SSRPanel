@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Components\Helpers;
 use App\Components\ServerChan;
 use App\Http\Models\Ticket;
 use App\Http\Models\TicketReply;
@@ -10,20 +11,22 @@ use App\Mail\replyTicket;
 use Illuminate\Http\Request;
 use Response;
 use Mail;
+use Auth;
 
 /**
  * 工单控制器
+ *
  * Class TicketController
  *
  * @package App\Http\Controllers
  */
 class TicketController extends Controller
 {
-    protected static $config;
+    protected static $systemConfig;
 
-    public function __construct()
+    function __construct()
     {
-        self::$config = $this->systemConfig();
+        self::$systemConfig = Helpers::systemConfig();
     }
 
     // 工单列表
@@ -31,23 +34,23 @@ class TicketController extends Controller
     {
         $view['ticketList'] = Ticket::query()->orderBy('id', 'desc')->paginate(10);
 
-        return Response::view('ticket/ticketList', $view);
+        return Response::view('ticket.ticketList', $view);
     }
 
     // 回复工单
     public function replyTicket(Request $request)
     {
         $id = $request->get('id');
-        $user = $request->session()->get('user');
 
-        if ($request->method() == 'POST') {
+        if ($request->isMethod('POST')) {
             $content = clean($request->get('content'));
+            $content = str_replace("eval", "", str_replace("atob", "", $content));
+            $content = substr($content, 0, 300);
 
             $obj = new TicketReply();
             $obj->ticket_id = $id;
-            $obj->user_id = $user['id'];
+            $obj->user_id = Auth::user()->id;
             $obj->content = $content;
-            $obj->created_at = date('Y-m-d H:i:s');
             $obj->save();
 
             if ($obj->id) {
@@ -61,33 +64,19 @@ class TicketController extends Controller
                 $content = "标题：" . $ticket->title . "<br>管理员回复：" . $content;
 
                 // 发通知邮件
-                if (!$user['is_admin']) {
-                    if (self::$config['crash_warning_email']) {
-                        try {
-                            Mail::to(self::$config['crash_warning_email'])->send(new replyTicket(self::$config['website_name'], $title, $content));
-                            $this->sendEmailLog(1, $title, $content);
-                        } catch (\Exception $e) {
-                            $this->sendEmailLog(1, $title, $content, 0, $e->getMessage());
-                        }
+                if (!Auth::user()->is_admin) {
+                    if (self::$systemConfig['crash_warning_email']) {
+                        $logId = Helpers::addEmailLog(self::$systemConfig['crash_warning_email'], $title, $content);
+                        Mail::to(self::$systemConfig['crash_warning_email'])->send(new replyTicket($logId, $title, $content));
                     }
                 } else {
-                    try {
-                        Mail::to($ticket->user->username)->send(new replyTicket(self::$config['website_name'], $title, $content));
-                        $this->sendEmailLog($ticket->user_id, $title, $content);
-                    } catch (\Exception $e) {
-                        $this->sendEmailLog($ticket->user_id, $title, $content, 0, $e->getMessage());
-                    }
+                    $logId = Helpers::addEmailLog($ticket->user->username, $title, $content);
+                    Mail::to($ticket->user->username)->send(new replyTicket($logId, $title, $content));
                 }
 
                 // 通过ServerChan发微信消息提醒管理员
-                if (!$user['is_admin'] && self::$config['is_server_chan'] && self::$config['server_chan_key']) {
-                    $serverChan = new ServerChan();
-                    $result = $serverChan->send($title, $content, self::$config['server_chan_key']);
-                    if ($result->errno > 0) {
-                        $this->sendEmailLog(1, '[ServerChan]' . $title, $content);
-                    } else {
-                        $this->sendEmailLog(1, '[ServerChan]' . $title, $content, 0, $result->errmsg);
-                    }
+                if (!Auth::user()->is_admin) {
+                    ServerChan::send($title, $content);
                 }
 
                 return Response::json(['status' => 'success', 'data' => '', 'message' => '回复成功']);
@@ -98,7 +87,7 @@ class TicketController extends Controller
             $view['ticket'] = Ticket::query()->where('id', $id)->with('user')->first();
             $view['replyList'] = TicketReply::query()->where('ticket_id', $id)->with('user')->orderBy('id', 'asc')->get();
 
-            return Response::view('ticket/replyTicket', $view);
+            return Response::view('ticket.replyTicket', $view);
         }
     }
 
@@ -108,6 +97,10 @@ class TicketController extends Controller
         $id = $request->get('id');
 
         $ticket = Ticket::query()->with(['user'])->where('id', $id)->first();
+        if (!$ticket) {
+            return Response::json(['status' => 'fail', 'data' => '', 'message' => '关闭失败']);
+        }
+
         $ticket->status = 2;
         $ret = $ticket->save();
         if (!$ret) {
@@ -118,12 +111,8 @@ class TicketController extends Controller
         $content = "工单【" . $ticket->title . "】已关闭";
 
         // 发邮件通知用户
-        try {
-            Mail::to($ticket->user->username)->send(new closeTicket(self::$config['website_name'], $title, $content));
-            $this->sendEmailLog($ticket->user_id, $title, $content);
-        } catch (\Exception $e) {
-            $this->sendEmailLog($ticket->user_id, $title, $content, 0, $e->getMessage());
-        }
+        $logId = Helpers::addEmailLog($ticket->user->username, $title, $content);
+        Mail::to($ticket->user->username)->send(new closeTicket($logId, $title, $content));
 
         return Response::json(['status' => 'success', 'data' => '', 'message' => '关闭成功']);
     }

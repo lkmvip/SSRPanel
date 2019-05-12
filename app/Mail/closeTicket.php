@@ -2,22 +2,23 @@
 
 namespace App\Mail;
 
+use App\Http\Models\EmailLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class closeTicket extends Mailable
+class closeTicket extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    protected $websiteName;
-    protected $title;
-    protected $content;
+    protected $id; // 邮件记录ID
+    protected $title; // 工单标题
+    protected $content; // 工单内容
 
-    public function __construct($websiteName, $title, $content)
+    public function __construct($id, $title, $content)
     {
-        $this->websiteName = $websiteName;
+        $this->id = $id;
         $this->title = $title;
         $this->content = $content;
     }
@@ -25,9 +26,14 @@ class closeTicket extends Mailable
     public function build()
     {
         return $this->view('emails.closeTicket')->subject('工单关闭提醒')->with([
-            'websiteName' => $this->websiteName,
-            'title'       => $this->title,
-            'content'     => $this->content
+            'title'   => $this->title,
+            'content' => $this->content
         ]);
+    }
+
+    // 发件失败处理
+    public function failed(\Exception $e)
+    {
+        EmailLog::query()->where('id', $this->id)->update(['status' => -1, 'error' => $e->getMessage()]);
     }
 }
